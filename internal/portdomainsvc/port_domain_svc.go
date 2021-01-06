@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
+
+	"log"
 
 	"github.com/jmoiron/sqlx"
 	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
+	"github.com/toncek345/port_manager/internal/portdomainsvc/services"
 	"google.golang.org/grpc"
 )
 
@@ -22,7 +26,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	pb.RegisterPortDomainServer(s.server, &PortServer{})
+	pb.RegisterPortDomainServer(s.server, &PortServer{portService: &services.PortSQL{DB: s.db}})
 
 	if err := s.server.Serve(lis); err != nil {
 		return fmt.Errorf("failed to serve: %w", err)
@@ -36,6 +40,7 @@ func (s *Service) Stop() {
 }
 
 type PortServer struct {
+	portService services.PortService
 	pb.UnimplementedPortDomainServer
 }
 
@@ -50,7 +55,26 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 			return fmt.Errorf("receive err: %w", err)
 		}
 
-		fmt.Printf("GRPC port read: %#v\n\n", port.IdStr)
+		if err := s.portService.UpsertPort(
+			in.Context(),
+			&services.Port{
+				IDStr:          port.IdStr,
+				Name:           port.Name,
+				City:           port.City,
+				Country:        port.Country,
+				CoordinatesLat: port.Coordinates[0],
+				CoordinatesLon: port.Coordinates[1],
+				Provice:        port.Provice,
+				Timezone:       port.Timezone,
+				Code:           port.Code,
+				Regions:        strings.Join(port.Regions, ","),
+				Unlocs:         strings.Join(port.Unlocs, ","),
+				Alias:          strings.Join(port.Alias, ","),
+			},
+		); err != nil {
+			log.Printf("upserting port: %s", err)
+			return fmt.Errorf("upserting port: %w", err)
+		}
 	}
 }
 

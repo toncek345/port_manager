@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -28,18 +29,18 @@ type PortService interface {
 }
 
 type PortSQL struct {
-	db *sqlx.DB
+	DB *sqlx.DB
 }
 
 func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
 	var pnew Port
 
-	if err := p.db.GetContext(
+	if err := p.DB.GetContext(
 		ctx,
 		&pnew,
 		"SELECT * FROM ports WHERE id_str = $1",
 		port.IDStr,
-	); err != nil {
+	); err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("getting port: %w", err)
 	}
 
@@ -47,7 +48,7 @@ func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
 		return p.insertPort(ctx, port)
 	}
 
-	if _, err := p.db.Exec(
+	if _, err := p.DB.Exec(
 		`UPDATE ports SET id_str=$1, name=$2, city=$3, country=$4, coord_long=$5, coord_lat=$6,
 		province=$7, timezone=$8, code=$9, regions=$10, unlocs=$11, alias=$12 WHERE id = $13`,
 		port.IDStr, port.Name, port.City, port.Country, port.CoordinatesLon, port.CoordinatesLat,
@@ -61,7 +62,7 @@ func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
 }
 
 func (p *PortSQL) insertPort(ctx context.Context, port *Port) error {
-	if _, err := p.db.Exec(
+	if _, err := p.DB.Exec(
 		`INSERT INTO ports (id_str, name, city, country, coord_long, coord_lat,
 		province, timezone, code, regions, unlocs, alias) VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
