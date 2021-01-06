@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
 	"github.com/toncek345/port_manager/internal/portdomainsvc/services"
 )
@@ -49,7 +50,7 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 		port, err := in.Recv()
 		if err != nil {
 			if err == io.EOF {
-				return nil
+				return in.SendAndClose(&empty.Empty{})
 			}
 
 			return fmt.Errorf("receive err: %w", err)
