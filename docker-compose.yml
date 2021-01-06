@@ -9,4 +9,5 @@ services:
       - POSTGRES_DB=db
     ports: 
       - 5434:5432
-
+    volumes:
+      - ./dbshema/model.sql:/docker-entrypoint-initdb.d/init.sql
