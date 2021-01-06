@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PortDomainClient interface {
 	Upsert(ctx context.Context, opts ...grpc.CallOption) (PortDomain_UpsertClient, error)
+	GetPort(ctx context.Context, in *GetPortRequest, opts ...grpc.CallOption) (*Port, error)
 }
 
 type portDomainClient struct {
@@ -63,11 +64,21 @@ func (x *portDomainUpsertClient) CloseAndRecv() (*empty.Empty, error) {
 	return m, nil
 }
 
+func (c *portDomainClient) GetPort(ctx context.Context, in *GetPortRequest, opts ...grpc.CallOption) (*Port, error) {
+	out := new(Port)
+	err := c.cc.Invoke(ctx, "/portdomainsvc.PortDomain/GetPort", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PortDomainServer is the server API for PortDomain service.
 // All implementations must embed UnimplementedPortDomainServer
 // for forward compatibility
 type PortDomainServer interface {
 	Upsert(PortDomain_UpsertServer) error
+	GetPort(context.Context, *GetPortRequest) (*Port, error)
 	mustEmbedUnimplementedPortDomainServer()
 }
 
@@ -77,6 +88,9 @@ type UnimplementedPortDomainServer struct {
 
 func (UnimplementedPortDomainServer) Upsert(PortDomain_UpsertServer) error {
 	return status.Errorf(codes.Unimplemented, "method Upsert not implemented")
+}
+func (UnimplementedPortDomainServer) GetPort(context.Context, *GetPortRequest) (*Port, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPort not implemented")
 }
 func (UnimplementedPortDomainServer) mustEmbedUnimplementedPortDomainServer() {}
 
@@ -117,13 +131,36 @@ func (x *portDomainUpsertServer) Recv() (*Port, error) {
 	return m, nil
 }
 
+func _PortDomain_GetPort_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPortRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortDomainServer).GetPort(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/portdomainsvc.PortDomain/GetPort",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortDomainServer).GetPort(ctx, req.(*GetPortRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PortDomain_ServiceDesc is the grpc.ServiceDesc for PortDomain service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PortDomain_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "portdomainsvc.PortDomain",
 	HandlerType: (*PortDomainServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetPort",
+			Handler:    _PortDomain_GetPort_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Upsert",

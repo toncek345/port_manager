@@ -1,12 +1,15 @@
 package clientapi
 
-func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		log.Println("wrong method")
-		c.JSON(w, http.StatusBadRequest, &ErrorResponse{Error: "Wrong request method"})
-		return
-	}
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
 
+	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
+)
+
+func (c *clientAPI) upsertPorts(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 
 	_, err := dec.Token()
@@ -50,4 +53,39 @@ func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (c *clientAPI) GetPort(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	if err != nil {
+		c.JSON(w, http.StatusBadRequest, ErrorResponse{Error: "Bad id"})
+		return
+	}
+
+	port, err := c.serviceClient.GetPort(r.Context(), &pb.GetPortRequest{PortId: id})
+	if err != nil {
+		c.JSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	data, err := json.Marshal(port)
+	if err != nil {
+		c.JSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write(data)
+}
+
+func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		c.GetPort(w, r)
+	case http.MethodPost:
+		c.upsertPorts(w, r)
+	default:
+		log.Println("wrong method")
+		c.JSON(w, http.StatusBadRequest, &ErrorResponse{Error: "Wrong request method"})
+		return
+	}
 }

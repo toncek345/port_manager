@@ -1,6 +1,7 @@
 package portdomainsvc
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,34 @@ import (
 type PortServer struct {
 	portService services.PortService
 	pb.UnimplementedPortDomainServer
+}
+
+func (s *PortServer) GetPort(ctx context.Context, in *pb.GetPortRequest) (*pb.Port, error) {
+	port, err := s.portService.GetPort(ctx, in.PortId)
+	if err != nil {
+		return nil, fmt.Errorf("finding port: %w", err)
+	}
+
+	return &pb.Port{
+		Id:      port.ID,
+		IdStr:   port.IDStr,
+		Name:    port.Name,
+		City:    port.City,
+		Country: port.Country,
+		Coordinates: func() []float64 {
+			if port.CoordinatesLat == nil || port.CoordinatesLon == nil {
+				return []float64{}
+			}
+
+			return []float64{*port.CoordinatesLon, *port.CoordinatesLat}
+		}(),
+		Provice:  port.Provice,
+		Timezone: port.Timezone,
+		Code:     port.Code,
+		Regions:  strings.Split(port.Regions, ","),
+		Unlocs:   strings.Split(port.Unlocs, ","),
+		Alias:    strings.Split(port.Alias, ","),
+	}, nil
 }
 
 func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {

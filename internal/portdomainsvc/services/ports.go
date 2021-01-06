@@ -26,10 +26,25 @@ type Port struct {
 
 type PortService interface {
 	UpsertPort(ctx context.Context, port *Port) error
+	GetPort(ctx context.Context, id int64) (*Port, error)
 }
 
 type PortSQL struct {
 	DB *sqlx.DB
+}
+
+func (p *PortSQL) GetPort(ctx context.Context, id int64) (*Port, error) {
+	var port Port
+
+	if err := p.DB.GetContext(
+		ctx,
+		&port,
+		"SELECT * FROM ports WHERE id = $1",
+		id); err != nil {
+		return nil, fmt.Errorf("getting port: %w", err)
+	}
+
+	return &port, nil
 }
 
 func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
