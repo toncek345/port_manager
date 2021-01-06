@@ -10,6 +10,3 @@ services:
     ports: 
       - 5434:5432
 
-  # sink:
-
-  # source:
