@@ -58,18 +58,30 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 		if err := s.portService.UpsertPort(
 			in.Context(),
 			&services.Port{
-				IDStr:          port.IdStr,
-				Name:           port.Name,
-				City:           port.City,
-				Country:        port.Country,
-				CoordinatesLat: port.Coordinates[0],
-				CoordinatesLon: port.Coordinates[1],
-				Provice:        port.Provice,
-				Timezone:       port.Timezone,
-				Code:           port.Code,
-				Regions:        strings.Join(port.Regions, ","),
-				Unlocs:         strings.Join(port.Unlocs, ","),
-				Alias:          strings.Join(port.Alias, ","),
+				IDStr:   port.IdStr,
+				Name:    port.Name,
+				City:    port.City,
+				Country: port.Country,
+
+				CoordinatesLat: func() *float64 {
+					if len(port.Coordinates) != 2 {
+						return nil
+					}
+					return &port.Coordinates[0]
+				}(),
+				CoordinatesLon: func() *float64 {
+					if len(port.Coordinates) != 2 {
+						return nil
+					}
+					return &port.Coordinates[1]
+				}(),
+
+				Provice:  port.Provice,
+				Timezone: port.Timezone,
+				Code:     port.Code,
+				Regions:  strings.Join(port.Regions, ","),
+				Unlocs:   strings.Join(port.Unlocs, ","),
+				Alias:    strings.Join(port.Alias, ","),
 			},
 		); err != nil {
 			log.Printf("upserting port: %s", err)
