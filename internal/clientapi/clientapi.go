@@ -1,17 +1,21 @@
 package clientapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"context"
+	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
+	"google.golang.org/grpc"
 )
 
 type clientAPI struct {
 	router *http.ServeMux
 	port   int
+
+	serviceClient pb.PortDomainClient
 
 	server *http.Server
 }
@@ -20,15 +24,21 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func New(port int) *clientAPI {
+func New(port int, grpcServiceAddr string) (*clientAPI, error) {
+	conn, err := grpc.Dial(grpcServiceAddr, grpc.WithInsecure())
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect to grpc server: %w", err)
+	}
+
 	api := &clientAPI{
-		router: http.NewServeMux(),
-		port:   port,
+		router:        http.NewServeMux(),
+		port:          port,
+		serviceClient: pb.NewPortDomainClient(conn),
 	}
 
 	api.router.HandleFunc("/ports", api.PortsHandler)
 
-	return api
+	return api, nil
 }
 
 // Start runs http server.
@@ -59,6 +69,7 @@ func (c *clientAPI) Stop() error {
 func (c *clientAPI) JSON(w http.ResponseWriter, status int, obj interface{}) error {
 	data, err := json.Marshal(obj)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return fmt.Errorf("unable to marshall json: %w", err)
 	}
 
@@ -70,6 +81,17 @@ func (c *clientAPI) JSON(w http.ResponseWriter, status int, obj interface{}) err
 }
 
 func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
+	upsert, err := c.serviceClient.Upsert(r.Context())
+	if err != nil {
+		c.JSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := upsert.Send(&pb.Port{}); err != nil {
+		c.JSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	w.Write([]byte("heeeeelo"))
 	return
 
@@ -142,12 +164,12 @@ func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 	// fmt.Printf("%T: %v\n", t, t)
 
-	type Message struct {
-		A struct {
-			Name string `json:"name"`
-		} `json:"AEAJM"`
-		Name string `json:"name"`
-	}
+	// type Message struct {
+	// 	A struct {
+	// 		Name string `json:"name"`
+	// 	} `json:"AEAJM"`
+	// 	Name string `json:"name"`
+	// }
 
 	// while the array contains values
 	// for dec.More() {

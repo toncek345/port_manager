@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package portdomainsvc;
+
+option go_package = "internal/portdomainsvc/grpc";
+
+service PortDomain {
+  rpc Upsert(stream Port) returns (google.protobuf.Empty);
+}
+
+message Port {
+  string id_str = 1;
+  string name = 2;
+  string city = 3;
+  string country = 4;
+  double coord_long = 5;
+  double coord_lat = 6;
+  string provice = 7;
+  string timezone = 8;
+  string code = 9;
+
+  repeated string regions = 10;
+  repeated int64 port_unlocs = 11;
+  repeated string aliases = 12;
+}
+
+
