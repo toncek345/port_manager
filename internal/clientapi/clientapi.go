@@ -88,39 +88,45 @@ func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dec := json.NewDecoder(r.Body)
+
+	_, err := dec.Token()
+	if err != nil {
+		c.JSON(w, http.StatusBadRequest, ErrorResponse{Error: "Bad json"})
+		return
+	}
+
 	upsert, err := c.serviceClient.Upsert(r.Context())
 	if err != nil {
 		c.JSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	defer upsert.CloseSend()
+	defer upsert.CloseAndRecv()
 
-	if err := upsert.Send(&pb.Port{}); err != nil {
-		c.JSON(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	dec := json.NewDecoder(r.Body)
-
-	// TODO: unfortunately this will read all json at once...
 	for dec.More() {
-		m := make(map[string]interface{})
+		portID, err := dec.Token()
+		if err != nil {
+			panic(err)
+		}
 
-		if err := dec.Decode(&m); err != nil {
+		// TODO: this is not DDD but time is running out.
+		port := &pb.Port{}
+		if err = dec.Decode(port); err != nil {
 			c.JSON(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		for k := range m {
+		portIDStr, ok := portID.(string)
+		if !ok {
+			c.JSON(w, http.StatusBadRequest, ErrorResponse{Error: "Bad json"})
+			return
+		}
 
-			port := &pb.Port{
-				IdStr: k,
-			}
+		port.IdStr = portIDStr
 
-			if err := upsert.Send(port); err != nil {
-				c.JSON(w, http.StatusInternalServerError, err)
-				return
-			}
+		if err := upsert.Send(port); err != nil {
+			c.JSON(w, http.StatusInternalServerError, err)
+			return
 		}
 	}
 
