@@ -2,6 +2,7 @@ package portdomainsvc
 
 import (
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/jmoiron/sqlx"
@@ -39,19 +40,19 @@ type PortServer struct {
 }
 
 func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
-	// TODO: i probably need to loop through this in order to get all ports
+	for {
+		port, err := in.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 
-	port, err := in.Recv()
-	if err != nil {
-		return fmt.Errorf("receive err: %w", err)
+			return fmt.Errorf("receive err: %w", err)
+		}
+
+		fmt.Printf("GRPC port read: %#v\n\n", port.IdStr)
 	}
-
-	fmt.Printf("GRPC port read: %#v\n\n", port.IdStr)
-
-	return nil
 }
-
-func (s *PortServer) mustEmbedUnimplementedPortDomainServer() {}
 
 func New(port int, db *sqlx.DB) *Service {
 	return &Service{

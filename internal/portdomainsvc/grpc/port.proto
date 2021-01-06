@@ -15,15 +15,14 @@ message Port {
   string name = 2;
   string city = 3;
   string country = 4;
-  double coord_long = 5;
-  double coord_lat = 6;
-  string provice = 7;
-  string timezone = 8;
-  string code = 9;
+  repeated double coordinates = 5;     // long, lat
+  string provice = 6;
+  string timezone = 7;
+  string code = 8;
 
   repeated string regions = 10;
-  repeated int64 port_unlocs = 11;
-  repeated string aliases = 12;
+  repeated string unlocs = 11;
+  repeated string alias = 12;
 }
 
 
