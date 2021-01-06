@@ -33,7 +33,7 @@ func (s *PortServer) GetPort(ctx context.Context, in *pb.GetPortRequest) (*pb.Po
 				return []float64{}
 			}
 
-			return []float64{*port.CoordinatesLon, *port.CoordinatesLat}
+			return []float64{*port.CoordinatesLat, *port.CoordinatesLon}
 		}(),
 		Provice:  port.Provice,
 		Timezone: port.Timezone,
@@ -67,13 +67,13 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 					if len(port.Coordinates) != 2 {
 						return nil
 					}
-					return &port.Coordinates[0]
+					return &port.Coordinates[1]
 				}(),
 				CoordinatesLon: func() *float64 {
 					if len(port.Coordinates) != 2 {
 						return nil
 					}
-					return &port.Coordinates[1]
+					return &port.Coordinates[0]
 				}(),
 
 				Provice:  port.Provice,
