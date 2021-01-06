@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -81,110 +82,47 @@ func (c *clientAPI) JSON(w http.ResponseWriter, status int, obj interface{}) err
 }
 
 func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		log.Println("wrong method")
+		c.JSON(w, http.StatusBadRequest, &ErrorResponse{Error: "Wrong request method"})
+		return
+	}
+
 	upsert, err := c.serviceClient.Upsert(r.Context())
 	if err != nil {
 		c.JSON(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer upsert.CloseSend()
 
 	if err := upsert.Send(&pb.Port{}); err != nil {
 		c.JSON(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	w.Write([]byte("heeeeelo"))
-	return
+	dec := json.NewDecoder(r.Body)
 
-	// if r.Method != http.MethodPost {
-	// 	log.Println("wrong method")
-	// 	a.JSON(w, http.StatusBadRequest, &ErrorResponse{Error: "Wrong request method"})
-	// 	return
-	// }
+	// TODO: unfortunately this will read all json at once...
+	for dec.More() {
+		m := make(map[string]interface{})
 
-	// 	jsonmsg := `
-	// {
-	//   "AEAJM": {
-	//     "name": "Ajman",
-	//     "city": "Ajman",
-	//     "country": "United Arab Emirates",
-	//     "alias": [],
-	//     "regions": [],
-	//     "coordinates": [
-	//       55.5136433,
-	//       25.4052165
-	//     ],
-	//     "province": "Ajman",
-	//     "timezone": "Asia/Dubai",
-	//     "unlocs": [
-	//       "AEAJM"
-	//     ],
-	//     "code": "52000"
-	//   },
-	//   "AEAUH": {
-	//     "name": "Abu Dhabi",
-	//     "coordinates": [
-	//       54.37,
-	//       24.47
-	//     ],
-	//     "city": "Abu Dhabi",
-	//     "province": "Abu Z¸aby [Abu Dhabi]",
-	//     "country": "United Arab Emirates",
-	//     "alias": [],
-	//     "regions": [],
-	//     "timezone": "Asia/Dubai",
-	//     "unlocs": [
-	//       "AEAUH"
-	//     ],
-	//     "code": "52001"
-	//   },
-	//   "AEDXB": {
-	//     "name": "Dubai",
-	//     "coordinates": [
-	//       55.27,
-	//       25.25
-	//     ],
-	//     "city": "Dubai",
-	//     "province": "Dubayy [Dubai]",
-	//     "country": "United Arab Emirates",
-	//     "alias": [],
-	//     "regions": [],
-	//     "timezone": "Asia/Dubai",
-	//     "unlocs": [
-	//       "AEDXB"
-	//     ],
-	//     "code": "52005"
-	//   }}`
+		if err := dec.Decode(&m); err != nil {
+			c.JSON(w, http.StatusInternalServerError, err)
+			return
+		}
 
-	// dec := json.NewDecoder(strings.NewReader(jsonmsg))
+		for k := range m {
 
-	// // read open bracket
-	// t, err := dec.Token()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Printf("%T: %v\n", t, t)
+			port := &pb.Port{
+				IdStr: k,
+			}
 
-	// type Message struct {
-	// 	A struct {
-	// 		Name string `json:"name"`
-	// 	} `json:"AEAJM"`
-	// 	Name string `json:"name"`
-	// }
+			if err := upsert.Send(port); err != nil {
+				c.JSON(w, http.StatusInternalServerError, err)
+				return
+			}
+		}
+	}
 
-	// while the array contains values
-	// for dec.More() {
-	// 	fmt.Println("REAAAAAAAAAAAAAAAD")
-	// 	data := make([]byte, 0, 20)
-	// 	s, err := dec.Buffered().Read(p []byte)
-
-	// 	// var m Message
-	// 	m := make(map[string]interface{})
-	// 	// decode an array value (Message)
-	// 	err := dec.Decode(&m)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-
-	// 	fmt.Printf("%#v\n\n", m)
-	// }
+	w.WriteHeader(http.StatusCreated)
 }

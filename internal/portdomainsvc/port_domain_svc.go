@@ -39,7 +39,14 @@ type PortServer struct {
 }
 
 func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
-	fmt.Printf("HEEEEEEEEEEEEELOOOOOOOOOOOOOOOO GRRRPC\n\n\n")
+	// TODO: i probably need to loop through this in order to get all ports
+
+	port, err := in.Recv()
+	if err != nil {
+		return fmt.Errorf("receive err: %w", err)
+	}
+
+	fmt.Printf("GRPC port read: %#v\n\n", port.IdStr)
 
 	return nil
 }
