@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	pb "github.com/toncek345/port_manager/internal/portdomain/proto"
 	portService "github.com/toncek345/port_manager/internal/portdomain/service/port"
-	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
 )
 
 type Server struct {

@@ -1,15 +1,22 @@
 package service
 
-import "github.com/jmoiron/sqlx"
+import (
+	"log"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/toncek345/port_manager/internal/portdomain/service/port"
+)
 
 type Services struct {
-	Port PortService
+	Port port.Service
 }
 
 func New(db *sqlx.DB) *Services {
+	if db == nil {
+		log.Fatalln("db is required")
+	}
+
 	return &Services{
-		Port: &PortSQL{
-			db: db,
-		},
+		Port: port.NewSQL(db),
 	}
 }

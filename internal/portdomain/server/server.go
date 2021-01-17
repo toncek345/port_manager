@@ -3,9 +3,9 @@ package server
 import (
 	"net"
 
+	pb "github.com/toncek345/port_manager/internal/portdomain/proto"
 	"github.com/toncek345/port_manager/internal/portdomain/server/port"
 	"github.com/toncek345/port_manager/internal/portdomain/service"
-	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
 	"google.golang.org/grpc"
 )
 

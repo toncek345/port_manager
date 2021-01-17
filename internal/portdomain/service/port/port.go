@@ -1,4 +1,4 @@
-package service
+package port
 
 import (
 	"context"
@@ -13,13 +13,19 @@ type Service interface {
 	GetPort(ctx context.Context, id int64) (*Port, error)
 }
 
-var _ Service = (*PortSQL)(nil)
+var _ Service = (*SQL)(nil)
 
-type PortSQL struct {
+type SQL struct {
 	db *sqlx.DB
 }
 
-func (p *PortSQL) GetPort(ctx context.Context, id int64) (*Port, error) {
+func NewSQL(db *sqlx.DB) *SQL {
+	return &SQL{
+		db: db,
+	}
+}
+
+func (p *SQL) GetPort(ctx context.Context, id int64) (*Port, error) {
 	var port Port
 
 	if err := p.db.GetContext(
@@ -33,7 +39,7 @@ func (p *PortSQL) GetPort(ctx context.Context, id int64) (*Port, error) {
 	return &port, nil
 }
 
-func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
+func (p *SQL) UpsertPort(ctx context.Context, port *Port) error {
 	var pnew Port
 
 	if err := p.db.GetContext(
@@ -62,7 +68,7 @@ func (p *PortSQL) UpsertPort(ctx context.Context, port *Port) error {
 	return nil
 }
 
-func (p *PortSQL) insertPort(ctx context.Context, port *Port) error {
+func (p *SQL) insertPort(ctx context.Context, port *Port) error {
 	if _, err := p.db.Exec(
 		`INSERT INTO ports (id_str, name, city, country, coord_long, coord_lat,
 		province, timezone, code, regions, unlocs, alias) VALUES

@@ -41,6 +41,7 @@ func main() {
 
 	srvErrChan := make(chan error, 1)
 	go func() {
+		log.Printf("starting server on port %d\n", port)
 		srvErrChan <- server.Serve(listener)
 	}()
 
