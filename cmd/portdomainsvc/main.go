@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -9,7 +11,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/toncek345/port_manager/internal/portdomainsvc"
+	"github.com/toncek345/port_manager/internal/portdomain/server"
+	"github.com/toncek345/port_manager/internal/portdomain/service"
 )
 
 func main() {
@@ -21,22 +24,24 @@ func main() {
 
 	dbConnStr := os.Getenv("DB")
 	if dbConnStr == "" {
-		log.Fatal("invalid db conn str")
+		log.Fatalln("invalid db conn str")
 	}
 
 	db, err := sqlx.Open("postgres", dbConnStr)
 	if err != nil {
-		log.Fatal("opening db conn: %w", err)
+		log.Fatalln("opening db conn: %w", err)
 	}
 
-	service := portdomainsvc.New(int(port), db)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		log.Fatalf("listening failed: %s\n", err.Error())
+	}
 
+	server := server.New(service.New(db))
+
+	srvErrChan := make(chan error, 1)
 	go func() {
-		// TODO: this is not ideal, server can die and the proccess will still be running
-		if err := service.Start(); err != nil {
-			log.Fatal(err)
-			return
-		}
+		srvErrChan <- server.Serve(listener)
 	}()
 
 	signalChan := make(chan os.Signal, 1)
@@ -45,8 +50,11 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGQUIT)
 
-	<-signalChan
-	log.Print("shutting down...\n")
-
-	service.Stop()
+	select {
+	case <-signalChan:
+		log.Println("shutting down...")
+		server.Close()
+	case err := <-srvErrChan:
+		log.Fatalf("server error: %s\n", err.Error())
+	}
 }

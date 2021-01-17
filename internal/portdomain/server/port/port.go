@@ -1,4 +1,4 @@
-package portdomainsvc
+package port
 
 import (
 	"context"
@@ -8,16 +8,26 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	portService "github.com/toncek345/port_manager/internal/portdomain/service/port"
 	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
-	"github.com/toncek345/port_manager/internal/portdomainsvc/services"
 )
 
-type PortServer struct {
-	portService services.PortService
+type Server struct {
+	portService portService.Service
 	pb.UnimplementedPortDomainServer
 }
 
-func (s *PortServer) GetPort(ctx context.Context, in *pb.GetPortRequest) (*pb.Port, error) {
+func New(portService portService.Service) *Server {
+	if portService == nil {
+		log.Fatalln("port service is required")
+	}
+
+	return &Server{
+		portService: portService,
+	}
+}
+
+func (s *Server) GetPort(ctx context.Context, in *pb.GetPortRequest) (*pb.Port, error) {
 	port, err := s.portService.GetPort(ctx, in.PortId)
 	if err != nil {
 		return nil, fmt.Errorf("finding port: %w", err)
@@ -45,7 +55,7 @@ func (s *PortServer) GetPort(ctx context.Context, in *pb.GetPortRequest) (*pb.Po
 	}, nil
 }
 
-func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
+func (s *Server) Upsert(in pb.PortDomain_UpsertServer) error {
 	for {
 		port, err := in.Recv()
 		if err != nil {
@@ -58,7 +68,7 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 
 		if err := s.portService.UpsertPort(
 			in.Context(),
-			&services.Port{
+			&portService.Port{
 				IDStr:   port.IdStr,
 				Name:    port.Name,
 				City:    port.City,

@@ -53,7 +53,7 @@ func main() {
 	case <-signalChan:
 		log.Println("shutting down...")
 		server.Shutdown(context.Background())
-	case <-srvErrChan:
+	case err := <-srvErrChan:
 		log.Fatalf("server error: %s\n", err.Error())
 	}
 }
