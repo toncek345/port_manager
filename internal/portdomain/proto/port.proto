@@ -2,9 +2,9 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-package portdomainsvc;
+package portdomain;
 
-option go_package = "internal/portdomainsvc/grpc";
+option go_package = "internal/portdomainsvc/proto";
 
 service PortDomain {
   rpc Upsert(stream Port) returns (google.protobuf.Empty);

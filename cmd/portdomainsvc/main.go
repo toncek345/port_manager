@@ -15,7 +15,7 @@ import (
 func main() {
 	port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 32)
 	if err != nil {
-		log.Fatalf("port cannot be parsed: %s", err)
+		log.Fatalf("port cannot be parsed: %s", err.Error())
 		return
 	}
 

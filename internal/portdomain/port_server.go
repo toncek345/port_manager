@@ -85,7 +85,7 @@ func (s *PortServer) Upsert(in pb.PortDomain_UpsertServer) error {
 				Alias:    strings.Join(port.Alias, ","),
 			},
 		); err != nil {
-			log.Printf("upserting port: %s", err)
+			log.Printf("upserting port: %s", err.Error())
 			return fmt.Errorf("upserting port: %w", err)
 		}
 	}

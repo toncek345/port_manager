@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	pb "github.com/toncek345/port_manager/internal/portdomainsvc/grpc"
+	pb "github.com/toncek345/port_manager/internal/portdomain/proto"
 )
 
 func (c *clientAPI) upsertPorts(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +31,7 @@ func (c *clientAPI) upsertPorts(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		// TODO: this is not DDD but time is running out.
-		port := &pb.Port{}
+		port := &Port{}
 		if err = dec.Decode(port); err != nil {
 			c.JSON(w, http.StatusInternalServerError, err)
 			return
@@ -44,9 +43,9 @@ func (c *clientAPI) upsertPorts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		port.IdStr = portIDStr
+		port.IDStr = portIDStr
 
-		if err := upsert.Send(port); err != nil {
+		if err := upsert.Send(PortToPortProto(port)); err != nil {
 			c.JSON(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -55,7 +54,7 @@ func (c *clientAPI) upsertPorts(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (c *clientAPI) GetPort(w http.ResponseWriter, r *http.Request) {
+func (c *clientAPI) getPort(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 	if err != nil {
 		c.JSON(w, http.StatusBadRequest, ErrorResponse{Error: "Bad id"})
@@ -68,7 +67,7 @@ func (c *clientAPI) GetPort(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(port)
+	data, err := json.Marshal(PortProtoToPort(port))
 	if err != nil {
 		c.JSON(w, http.StatusInternalServerError, err)
 		return
@@ -80,7 +79,7 @@ func (c *clientAPI) GetPort(w http.ResponseWriter, r *http.Request) {
 func (c *clientAPI) PortsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		c.GetPort(w, r)
+		c.getPort(w, r)
 	case http.MethodPost:
 		c.upsertPorts(w, r)
 	default:
