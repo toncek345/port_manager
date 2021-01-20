@@ -14,6 +14,7 @@ type Service interface {
 }
 
 var _ Service = (*SQL)(nil)
+var _ Service = (*Mock)(nil)
 
 type SQL struct {
 	db *sqlx.DB
