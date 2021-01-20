@@ -11,3 +11,26 @@ services:
       - 5434:5432
     volumes:
       - ./internal/portdomain/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  port-service:
+    build:
+      context: .
+      dockerfile: deployment/port_service.dockerfile
+      args:
+        port: 5001
+        database_connection: 'host=portdomain-database port=5432 user=root password=root dbname=db sslmode=disable'
+    depends_on:
+      - portdomain-database
+
+  api:
+    build:
+      context: .
+      dockerfile: deployment/api.dockerfile
+      args:
+        port: 5000
+        port_service_url: port-service:5001
+    depends_on:
+      - port-service
+    ports:
+      - 4555:5000
+    restart: on-failure
