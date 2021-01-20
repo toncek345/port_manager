@@ -28,9 +28,6 @@ func New(portDomainSvcClient pb.PortDomainClient) *clientAPI {
 		serviceClient: portDomainSvcClient,
 	}
 
-	api.Router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello"))
-	})
 	api.Router.HandleFunc("/ports", api.PortsHandler)
 
 	return api
